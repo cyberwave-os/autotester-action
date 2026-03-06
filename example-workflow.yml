@@ -1,0 +1,29 @@
+name: Autotester E2E CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  e2e-tests:
+    name: Run E2E Tests
+    runs-on: ubuntu-latest
+    # Optional: Add conditions on when to run E2E tests
+    # if: github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run Autotester E2E Tests
+        uses: cyberwaveos/autotester-oss-action@v0.1.0
+        with:
+          action-type: "e2e"
+          config-file: "autotester.yml"
+          verbose: "true"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # Optional: Override the starting URL from autotester.yml
+          # STARTING_URL: "https://staging.example.com"
