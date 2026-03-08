@@ -77,6 +77,7 @@ jobs:
 | `STARTING_URL`               | Override the base URL for E2E tests                 | No       |
 | `AUTOTESTER_AUTH_USERNAME`   | Username for HTTP Basic Auth on protected environments | No    |
 | `AUTOTESTER_AUTH_PASSWORD`   | Password for HTTP Basic Auth on protected environments | No    |
+| `POSTHOG_PERSONAL_API_KEY`   | Posthog personal API key for session replay links on failed tests | No |
 
 ## Prerequisites
 
@@ -150,6 +151,62 @@ e2e:
 ```
 
 Environment variables always take precedence over YAML values.
+
+### 4. (Optional) Enable Posthog session replay links
+
+If your website uses [Posthog](https://posthog.com) with [session replay](https://posthog.com/docs/session-replay) enabled, Autotester can include a direct link to the recording of each failed test. QA engineers can click the link and watch exactly what the browser did during the failure.
+
+**Step 1:** Add a `posthog` block to your `autotester.yml`:
+
+```yaml
+e2e:
+  posthog:
+    project_id: "12345"
+    host: "https://us.posthog.com"  # or https://eu.posthog.com, or your self-hosted URL
+  login-test:
+    url: "https://staging.example.com"
+    steps:
+      - "Navigate to the login page"
+      - "Enter credentials and click Login"
+      - "Check that the dashboard is displayed"
+```
+
+**Step 2:** Create a [Posthog personal API key](https://us.posthog.com/settings/user-api-keys) with the `session_recording:read` and `sharing_configuration:write` scopes, and add it as a repository secret named `POSTHOG_PERSONAL_API_KEY`.
+
+**Step 3:** Pass the secret in your workflow:
+
+```yaml
+name: Autotester E2E with Posthog Replay
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Autotester E2E Tests
+        uses: cyberwave-os/autotester-action@v0.1.0
+        with:
+          action-type: "e2e"
+          verbose: "true"
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+```
+
+When a test fails, the output will include a shareable recording link:
+
+```
+login-test: Failed!
+  Comment: The dashboard did not load after login
+  Recording: https://us.posthog.com/shared/abc123token
+```
+
+The recording URL is also included in the JSON (`e2e.json`) and XML (`e2e.xml`) report outputs, so you can use it in downstream steps (e.g. posting to Slack or adding a PR comment).
 
 ## Supported Languages
 

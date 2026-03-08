@@ -30,3 +30,5 @@ jobs:
           # Optional: HTTP Basic Auth for protected dev/staging environments
           # AUTOTESTER_AUTH_USERNAME: ${{ secrets.AUTOTESTER_AUTH_USERNAME }}
           # AUTOTESTER_AUTH_PASSWORD: ${{ secrets.AUTOTESTER_AUTH_PASSWORD }}
+          # Optional: Posthog session replay - get recording links for failed tests
+          # POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
