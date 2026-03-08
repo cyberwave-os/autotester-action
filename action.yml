@@ -11,9 +11,9 @@ inputs:
     required: false
     default: "e2e"
   config-file:
-    description: "Path to the YAML configuration file"
+    description: "Path to the YAML configuration file (defaults to autotester.yml). Can also be set via AUTOTESTER_CONFIG env var."
     required: false
-    default: "autotester.yml"
+    default: ""
   verbose:
     description: "Enable verbose logging output"
     required: false
@@ -61,7 +61,7 @@ runs:
     - name: Install Autotester
       shell: bash
       run: |
-        pip install autotester
+        pip install "autotester>=0.0.8"
 
     - name: Install browser-use browsers
       shell: bash
@@ -94,3 +94,4 @@ runs:
         AUTOTESTER_AUTH_USERNAME: ${{ env.AUTOTESTER_AUTH_USERNAME }}
         AUTOTESTER_AUTH_PASSWORD: ${{ env.AUTOTESTER_AUTH_PASSWORD }}
         POSTHOG_PERSONAL_API_KEY: ${{ env.POSTHOG_PERSONAL_API_KEY }}
+        AUTOTESTER_CONFIG: ${{ env.AUTOTESTER_CONFIG }}
