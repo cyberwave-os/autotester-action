@@ -58,6 +58,11 @@ runs:
       run: |
         pip install autotester
 
+    - name: Install uv
+      shell: bash
+      run: |
+        pip install uv
+
     - name: Install browser-use browsers
       shell: bash
       run: |
