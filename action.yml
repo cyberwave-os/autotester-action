@@ -58,15 +58,15 @@ runs:
       run: |
         pip install uv
 
-    - name: Install browser-use browsers
-      shell: bash
-      run: |
-        browser-use install
-
     - name: Install Autotester
       shell: bash
       run: |
         pip install autotester
+
+    - name: Install browser-use browsers
+      shell: bash
+      run: |
+        browser-use install
 
     - name: Run Autotester E2E Tests
       shell: bash
