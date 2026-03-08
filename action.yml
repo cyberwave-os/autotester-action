@@ -53,11 +53,6 @@ runs:
         # Wait for Chrome to start
         sleep 5
 
-    - name: Install Autotester
-      shell: bash
-      run: |
-        pip install autotester
-
     - name: Install uv
       shell: bash
       run: |
@@ -67,6 +62,11 @@ runs:
       shell: bash
       run: |
         browser-use install
+
+    - name: Install Autotester
+      shell: bash
+      run: |
+        pip install autotester
 
     - name: Run Autotester E2E Tests
       shell: bash
