@@ -58,10 +58,10 @@ runs:
       run: |
         pip install autotester
 
-    - name: Install playwright
+    - name: Install browser-use browsers
       shell: bash
       run: |
-        python -m playwright install
+        browser-use install
 
     - name: Run Autotester E2E Tests
       shell: bash
@@ -86,3 +86,5 @@ runs:
         OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
         CHROME_INSTANCE_PATH: ${{ env.CHROME_PATH }}
         STARTING_URL: ${{ env.STARTING_URL }}
+        AUTOTESTER_AUTH_USERNAME: ${{ env.AUTOTESTER_AUTH_USERNAME }}
+        AUTOTESTER_AUTH_PASSWORD: ${{ env.AUTOTESTER_AUTH_PASSWORD }}

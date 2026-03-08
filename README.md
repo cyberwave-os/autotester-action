@@ -71,10 +71,23 @@ jobs:
 
 ## Environment Variables
 
-| Variable         | Description                          | Required |
-| ---------------- | ------------------------------------ | -------- |
-| `OPENAI_API_KEY` | Your OpenAI API key                  | Yes      |
-| `STARTING_URL`   | Override the base URL for E2E tests  | No       |
+| Variable                     | Description                                         | Required |
+| ---------------------------- | --------------------------------------------------- | -------- |
+| `OPENAI_API_KEY`             | Your OpenAI API key                                 | Yes      |
+| `STARTING_URL`               | Override the base URL for E2E tests                 | No       |
+| `AUTOTESTER_AUTH_USERNAME`   | Username for HTTP Basic Auth on protected environments | No    |
+| `AUTOTESTER_AUTH_PASSWORD`   | Password for HTTP Basic Auth on protected environments | No    |
+
+## Prerequisites
+
+Autotester uses [browser-use](https://github.com/browser-use/browser-use) for browser automation via Chrome DevTools Protocol. The action handles installing Chrome and browser-use's browser binaries automatically — no extra setup is needed on your part.
+
+If you're running Autotester **locally** (outside of this action), make sure you have Chrome or Chromium installed. You can use the browser-use CLI to install Chromium:
+
+```bash
+pip install autotester
+browser-use install
+```
 
 ## Setup
 
@@ -104,6 +117,39 @@ Add your OpenAI API key as a secret in your GitHub repository:
 4. Name: `OPENAI_API_KEY`
 5. Value: your OpenAI API key
 6. Click "Add secret"
+
+### 3. (Optional) Configure HTTP Basic Auth
+
+If your dev/staging environment is protected by HTTP Basic Auth, you can
+provide credentials in two ways:
+
+**Option A: Via environment variables (recommended for CI)**
+
+Add `AUTOTESTER_AUTH_USERNAME` and `AUTOTESTER_AUTH_PASSWORD` as repository
+secrets, then pass them in your workflow:
+
+```yaml
+env:
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+  AUTOTESTER_AUTH_USERNAME: ${{ secrets.AUTOTESTER_AUTH_USERNAME }}
+  AUTOTESTER_AUTH_PASSWORD: ${{ secrets.AUTOTESTER_AUTH_PASSWORD }}
+```
+
+**Option B: Via autotester.yml**
+
+```yaml
+e2e:
+  auth:
+    type: basic
+    username: "dev"
+    password: "dev123"
+  my-test:
+    url: "https://staging.example.com"
+    steps:
+      - "Check the homepage loads"
+```
+
+Environment variables always take precedence over YAML values.
 
 ## Supported Languages
 
