@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Run Autotester E2E Tests
-        uses: cyberwaveos/autotester-oss-action@v0.1.0
+        uses: cyberwave-os/autotester-action@v0.1.0
         with:
           action-type: "e2e"
         env:
@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run Autotester E2E Tests
-        uses: cyberwaveos/autotester-oss-action@v0.1.0
+        uses: cyberwave-os/autotester-action@v0.1.0
         with:
           action-type: "e2e"
           config-file: "autotester.yml"
