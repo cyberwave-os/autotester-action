@@ -98,6 +98,8 @@ Create an `autotester.yml` file in the root of your repository:
 
 ```yaml
 e2e:
+  # max_steps: 50    # Optional: global agent step limit (default: steps * 5, min 20)
+  # timeout: 600     # Optional: global wall-clock timeout in seconds (default: steps * 60, min 180)
   login-test:
     url: "https://your-app-url.com"
     steps:
@@ -207,6 +209,32 @@ login-test: Failed!
 ```
 
 The recording URL is also included in the JSON (`e2e.json`) and XML (`e2e.xml`) report outputs, so you can use it in downstream steps (e.g. posting to Slack or adding a PR comment).
+
+### 5. (Optional) Configure step limits and timeouts
+
+By default, Autotester automatically calculates a sensible agent step limit and wall-clock timeout for each test based on its number of steps. This prevents the browser agent from running indefinitely if it gets stuck in a loop.
+
+The defaults are:
+
+- **`max_steps`**: `number_of_steps * 5` (minimum 20)
+- **`timeout`**: `number_of_steps * 60` seconds (minimum 180)
+
+You can override these globally or per test in your `autotester.yml`:
+
+```yaml
+e2e:
+  max_steps: 40       # global default for all tests
+  timeout: 300        # global timeout in seconds
+  login-test:
+    url: "https://staging.example.com"
+    max_steps: 25     # override for this test only
+    timeout: 180      # override for this test only
+    steps:
+      - "Navigate to the login page"
+      - "Check that the dashboard is displayed"
+```
+
+When a test hits either limit, it is marked as failed with a descriptive message (e.g. `"Test timed out after 300s"`). No changes to your workflow file are needed — just update your `autotester.yml`.
 
 ## Supported Languages
 
