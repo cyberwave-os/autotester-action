@@ -58,7 +58,7 @@ jobs:
           verbose: "true"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          STARTING_URL: "https://staging.example.com"
+          AUTOTESTER_BASE_URL: "https://staging.example.com"
 ```
 
 ## Inputs
@@ -74,7 +74,7 @@ jobs:
 | Variable                     | Description                                         | Required |
 | ---------------------------- | --------------------------------------------------- | -------- |
 | `OPENAI_API_KEY`             | Your OpenAI API key                                 | Yes      |
-| `STARTING_URL`               | Override the base URL for E2E tests                 | No       |
+| `AUTOTESTER_BASE_URL`        | Override the base URL for E2E tests                 | No       |
 | `AUTOTESTER_AUTH_USERNAME`   | Username for HTTP Basic Auth on protected environments | No    |
 | `AUTOTESTER_AUTH_PASSWORD`   | Password for HTTP Basic Auth on protected environments | No    |
 | `POSTHOG_PERSONAL_API_KEY`   | Posthog personal API key for session replay links on failed tests | No |

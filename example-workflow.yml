@@ -25,8 +25,8 @@ jobs:
           verbose: "true"
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          # Optional: Override the starting URL from autotester.yml
-          # STARTING_URL: "https://staging.example.com"
+          # Optional: Override the base URL from autotester.yml
+          # AUTOTESTER_BASE_URL: "https://staging.example.com"
           # Optional: HTTP Basic Auth for protected dev/staging environments
           # AUTOTESTER_AUTH_USERNAME: ${{ secrets.AUTOTESTER_AUTH_USERNAME }}
           # AUTOTESTER_AUTH_PASSWORD: ${{ secrets.AUTOTESTER_AUTH_PASSWORD }}
