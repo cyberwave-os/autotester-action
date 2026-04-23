@@ -85,7 +85,7 @@ runs:
     - name: Install Autotester
       shell: bash
       run: |
-        pip install "autotester>=0.1.1"
+        pip install "autotester>=0.1.2"
 
     - name: Install browser-use browsers
       shell: bash
