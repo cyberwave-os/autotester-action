@@ -18,17 +18,16 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run Autotester E2E Tests
-        uses: cyberwave-os/autotester-action@v0.1.0
+        uses: cyberwave-os/autotester-action@v0.1.10
         with:
           action-type: "e2e"
           config-file: "autotester.yml"
           verbose: "true"
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           # Optional: Override the base URL from autotester.yml
-          # AUTOTESTER_BASE_URL: "https://staging.example.com"
+          # base-url: "https://staging.example.com"
           # Optional: HTTP Basic Auth for protected dev/staging environments
-          # AUTOTESTER_AUTH_USERNAME: ${{ secrets.AUTOTESTER_AUTH_USERNAME }}
-          # AUTOTESTER_AUTH_PASSWORD: ${{ secrets.AUTOTESTER_AUTH_PASSWORD }}
+          # auth-username: ${{ secrets.AUTOTESTER_AUTH_USERNAME }}
+          # auth-password: ${{ secrets.AUTOTESTER_AUTH_PASSWORD }}
           # Optional: Posthog session replay - get recording links for failed tests
-          # POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          # posthog-api-key: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}

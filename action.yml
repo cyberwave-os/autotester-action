@@ -18,6 +18,30 @@ inputs:
     description: "Enable verbose logging output"
     required: false
     default: "false"
+  # Secrets / URLs can be provided either as inputs (recommended; explicit and
+  # not dependent on env propagation through composite actions) or via env
+  # vars on the step that calls this action. When both are set, the `with:`
+  # input wins.
+  openai-api-key:
+    description: "OpenAI API key. Alternative to setting OPENAI_API_KEY via env:."
+    required: false
+    default: ""
+  base-url:
+    description: "Base URL to combine with relative test URLs (e.g. https://staging.example.com). Alternative to AUTOTESTER_BASE_URL env var."
+    required: false
+    default: ""
+  auth-username:
+    description: "HTTP Basic Auth username. Alternative to AUTOTESTER_AUTH_USERNAME env var."
+    required: false
+    default: ""
+  auth-password:
+    description: "HTTP Basic Auth password. Alternative to AUTOTESTER_AUTH_PASSWORD env var."
+    required: false
+    default: ""
+  posthog-api-key:
+    description: "Posthog personal API key for session replay links on failed tests. Alternative to POSTHOG_PERSONAL_API_KEY env var."
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -68,6 +92,46 @@ runs:
       run: |
         browser-use install
 
+    # Resolve final values for the autotester CLI step.
+    #
+    # Each env var can come from two places:
+    #   1. `inputs.*` on this action (explicit, via `with:` on the caller)
+    #   2. An env var set on the calling workflow (e.g. via $GITHUB_ENV or
+    #      a job/workflow-level `env:` block)
+    #
+    # We MUST NOT redeclare `env: FOO: ${{ env.FOO }}` on the CLI run step,
+    # because step-level `env:` on the caller does NOT reliably propagate
+    # into a composite action's `${{ env }}` context. Doing so would silently
+    # set `FOO=""` and overwrite whatever the caller actually provided via
+    # env. Instead, we compute the effective values here and emit them
+    # through $GITHUB_ENV, which IS reliably visible to later composite
+    # steps.
+    - name: Resolve Autotester env
+      shell: bash
+      env:
+        INPUT_OPENAI_API_KEY: ${{ inputs.openai-api-key }}
+        INPUT_BASE_URL: ${{ inputs.base-url }}
+        INPUT_AUTH_USERNAME: ${{ inputs.auth-username }}
+        INPUT_AUTH_PASSWORD: ${{ inputs.auth-password }}
+        INPUT_POSTHOG_API_KEY: ${{ inputs.posthog-api-key }}
+      run: |
+        set -u
+        # Emit $name=$value to $GITHUB_ENV only when a non-empty value was
+        # provided via `with:`. If `with:` is empty, we leave whatever the
+        # caller may already have set via env: / $GITHUB_ENV untouched.
+        emit_if_set() {
+          local name="$1"
+          local value="$2"
+          if [ -n "$value" ]; then
+            printf '%s<<__AUTOTESTER_EOF__\n%s\n__AUTOTESTER_EOF__\n' "$name" "$value" >> "$GITHUB_ENV"
+          fi
+        }
+        emit_if_set OPENAI_API_KEY "$INPUT_OPENAI_API_KEY"
+        emit_if_set AUTOTESTER_BASE_URL "$INPUT_BASE_URL"
+        emit_if_set AUTOTESTER_AUTH_USERNAME "$INPUT_AUTH_USERNAME"
+        emit_if_set AUTOTESTER_AUTH_PASSWORD "$INPUT_AUTH_PASSWORD"
+        emit_if_set POSTHOG_PERSONAL_API_KEY "$INPUT_POSTHOG_API_KEY"
+
     - name: Run Autotester E2E Tests
       shell: bash
       run: |
@@ -88,10 +152,14 @@ runs:
 
         autotester e2e $VERBOSE_FLAG $CONFIG_OPTION
       env:
-        OPENAI_API_KEY: ${{ env.OPENAI_API_KEY }}
+        # CHROME_PATH is set via $GITHUB_ENV in the "Install Chrome" step and
+        # the autotester CLI expects it under the name CHROME_INSTANCE_PATH.
+        # All other env vars (OPENAI_API_KEY, AUTOTESTER_BASE_URL,
+        # AUTOTESTER_AUTH_*, POSTHOG_PERSONAL_API_KEY, AUTOTESTER_CONFIG) are
+        # either forwarded through $GITHUB_ENV by the "Resolve Autotester
+        # env" step or inherited from the caller's env. We MUST NOT redeclare
+        # them here with `${{ env.FOO }}` because that would overwrite them
+        # with "" whenever they were set via step-level `env:` on the caller
+        # (step-level env does not propagate into the composite `env`
+        # context).
         CHROME_INSTANCE_PATH: ${{ env.CHROME_PATH }}
-        AUTOTESTER_BASE_URL: ${{ env.AUTOTESTER_BASE_URL }}
-        AUTOTESTER_AUTH_USERNAME: ${{ env.AUTOTESTER_AUTH_USERNAME }}
-        AUTOTESTER_AUTH_PASSWORD: ${{ env.AUTOTESTER_AUTH_PASSWORD }}
-        POSTHOG_PERSONAL_API_KEY: ${{ env.POSTHOG_PERSONAL_API_KEY }}
-        AUTOTESTER_CONFIG: ${{ env.AUTOTESTER_CONFIG }}

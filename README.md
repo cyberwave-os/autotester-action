@@ -26,12 +26,21 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Run Autotester E2E Tests
-        uses: cyberwave-os/autotester-action@v0.1.0
+        uses: cyberwave-os/autotester-action@v0.1.10
         with:
           action-type: "e2e"
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
 ```
+
+> **Tip — prefer `with:` over `env:`**
+>
+> Step-level `env:` set on the step that calls a composite action does NOT
+> reliably propagate into the composite action's `${{ env }}` context. For
+> that reason, from `v0.1.10` onwards we recommend passing secrets and URLs
+> as `with:` inputs (`openai-api-key`, `base-url`, `auth-username`,
+> `auth-password`, `posthog-api-key`). The older `env:`-based usage still
+> works when you set the variables at the job/workflow level or via
+> `$GITHUB_ENV`.
 
 ### Example: run against staging after deployment
 
@@ -51,23 +60,27 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run Autotester E2E Tests
-        uses: cyberwave-os/autotester-action@v0.1.0
+        uses: cyberwave-os/autotester-action@v0.1.10
         with:
           action-type: "e2e"
           config-file: "autotester.yml"
           verbose: "true"
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          AUTOTESTER_BASE_URL: "https://staging.example.com"
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          base-url: "https://staging.example.com"
 ```
 
 ## Inputs
 
-| Input         | Description                                          | Required | Default          |
-| ------------- | ---------------------------------------------------- | -------- | ---------------- |
-| `action-type` | Type of tests to run (`e2e`)                         | No       | `e2e`            |
-| `config-file` | Path to the YAML configuration file                  | No       | `autotester.yml` |
-| `verbose`     | Enable verbose logging output                        | No       | `false`          |
+| Input             | Description                                                                                  | Required | Default          |
+| ----------------- | -------------------------------------------------------------------------------------------- | -------- | ---------------- |
+| `action-type`     | Type of tests to run (`e2e`)                                                                 | No       | `e2e`            |
+| `config-file`     | Path to the YAML configuration file                                                          | No       | `autotester.yml` |
+| `verbose`         | Enable verbose logging output                                                                | No       | `false`          |
+| `openai-api-key`  | OpenAI API key. Alternative to setting `OPENAI_API_KEY` via `env:`.                          | No       | `""`             |
+| `base-url`        | Base URL to combine with relative test URLs. Alternative to `AUTOTESTER_BASE_URL`.           | No       | `""`             |
+| `auth-username`   | HTTP Basic Auth username. Alternative to `AUTOTESTER_AUTH_USERNAME`.                         | No       | `""`             |
+| `auth-password`   | HTTP Basic Auth password. Alternative to `AUTOTESTER_AUTH_PASSWORD`.                         | No       | `""`             |
+| `posthog-api-key` | Posthog personal API key for session replay links. Alternative to `POSTHOG_PERSONAL_API_KEY`. | No       | `""`             |
 
 ## Environment Variables
 
@@ -191,13 +204,12 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Run Autotester E2E Tests
-        uses: cyberwave-os/autotester-action@v0.1.0
+        uses: cyberwave-os/autotester-action@v0.1.10
         with:
           action-type: "e2e"
           verbose: "true"
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          POSTHOG_PERSONAL_API_KEY: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          posthog-api-key: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
 ```
 
 When a test fails, the output will include a shareable recording link:
