@@ -18,7 +18,8 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run Autotester E2E Tests
-        uses: cyberwave-os/autotester-action@v0.2.0
+        id: autotester
+        uses: cyberwave-os/autotester-action@v0.3.0
         with:
           action-type: "e2e"
           config-file: "autotester.yml"
@@ -31,3 +32,19 @@ jobs:
           # auth-password: ${{ secrets.AUTOTESTER_AUTH_PASSWORD }}
           # Optional: Posthog session replay - get recording links for failed tests
           # posthog-api-key: ${{ secrets.POSTHOG_PERSONAL_API_KEY }}
+          # Optional: disable the built-in artifact upload if you'd rather
+          # ship the videos somewhere else yourself (see step below).
+          # upload-artifacts: "false"
+
+      # The action already uploads `.autotester/` as a workflow artifact
+      # named `autotester-results`. The block below shows how to upload
+      # the videos somewhere else (e.g. S3) using the action's outputs.
+      # Remove or comment out if you only want the default artifact.
+      #
+      # - name: Push recordings to S3
+      #   if: always()
+      #   run: |
+      #     aws s3 cp \
+      #       "${{ steps.autotester.outputs.recordings-path }}" \
+      #       "s3://my-bucket/autotester/${{ github.run_id }}/" \
+      #       --recursive

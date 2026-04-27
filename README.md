@@ -5,6 +5,8 @@ This GitHub Action runs [Autotester](https://github.com/cyberwaveos/autotester) 
 ## Features
 
 - 🤖 Run end-to-end tests using natural language steps
+- 🎥 Get an MP4 video recording of every test (uploaded as a workflow
+  artifact by default) so you can replay exactly what the agent did
 - 🐛 Catch regressions early with automated browser flows
 - ⚡ Keep E2E checks simple in pull requests and releases
 
@@ -26,11 +28,17 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Run Autotester E2E Tests
-        uses: cyberwave-os/autotester-action@v0.2.0
+        uses: cyberwave-os/autotester-action@v0.3.0
         with:
           action-type: "e2e"
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
 ```
+
+> **Recordings as artifacts** — by default the action uploads
+> `.autotester/` (per-test MP4 videos + JUnit XML + JSON report) as a
+> workflow artifact named `autotester-results`. See the
+> [Video recordings](#5-video-recordings) section for how to disable this
+> or push the videos elsewhere using the action's outputs.
 
 > **Tip — prefer `with:` over `env:`**
 >
@@ -60,7 +68,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run Autotester E2E Tests
-        uses: cyberwave-os/autotester-action@v0.2.0
+        uses: cyberwave-os/autotester-action@v0.3.0
         with:
           action-type: "e2e"
           config-file: "autotester.yml"
@@ -71,27 +79,43 @@ jobs:
 
 ## Inputs
 
-| Input             | Description                                                                                   | Required | Default          |
-| ----------------- | --------------------------------------------------------------------------------------------- | -------- | ---------------- |
-| `action-type`     | Type of tests to run (`e2e`)                                                                  | No       | `e2e`            |
-| `config-file`     | Path to the YAML configuration file                                                           | No       | `autotester.yml` |
-| `verbose`         | Enable verbose logging output                                                                 | No       | `false`          |
-| `openai-api-key`  | OpenAI API key. Alternative to setting `OPENAI_API_KEY` via `env:`.                           | No       | `""`             |
-| `base-url`        | Base URL to combine with relative test URLs. Alternative to `AUTOTESTER_BASE_URL`.            | No       | `""`             |
-| `auth-username`   | HTTP Basic Auth username. Alternative to `AUTOTESTER_AUTH_USERNAME`.                          | No       | `""`             |
-| `auth-password`   | HTTP Basic Auth password. Alternative to `AUTOTESTER_AUTH_PASSWORD`.                          | No       | `""`             |
-| `posthog-api-key` | Posthog personal API key for session replay links. Alternative to `POSTHOG_PERSONAL_API_KEY`. | No       | `""`             |
+| Input             | Description                                                                                         | Required | Default          |
+| ----------------- | --------------------------------------------------------------------------------------------------- | -------- | ---------------- |
+| `action-type`     | Type of tests to run (`e2e`)                                                                        | No       | `e2e`            |
+| `config-file`     | Path to the YAML configuration file                                                                 | No       | `autotester.yml` |
+| `verbose`         | Enable verbose logging output                                                                       | No       | `false`          |
+| `openai-api-key`  | OpenAI API key. Alternative to setting `OPENAI_API_KEY` via `env:`.                                 | No       | `""`             |
+| `base-url`        | Base URL to combine with relative test URLs. Alternative to `AUTOTESTER_BASE_URL`.                  | No       | `""`             |
+| `auth-username`   | HTTP Basic Auth username. Alternative to `AUTOTESTER_AUTH_USERNAME`.                                | No       | `""`             |
+| `auth-password`   | HTTP Basic Auth password. Alternative to `AUTOTESTER_AUTH_PASSWORD`.                                | No       | `""`             |
+| `posthog-api-key` | Posthog personal API key for session replay links. Alternative to `POSTHOG_PERSONAL_API_KEY`.       | No       | `""`             |
 | `model`           | LLM model used to drive the browser agent (e.g. `gpt-5.4-mini`). Alternative to `AUTOTESTER_MODEL`. | No       | `""`             |
+| `upload-artifacts`| Upload `.autotester/` (videos + JUnit XML + JSON report) as a workflow artifact. Set to `"false"` to disable and upload the `recordings-path` output yourself. | No | `"true"` |
+| `artifact-name`   | Name of the workflow artifact created when `upload-artifacts` is `"true"`.                          | No       | `"autotester-results"` |
+| `artifact-retention-days` | Days to retain the workflow artifact. Empty = use repository default.                       | No       | `""`             |
+
+## Outputs
+
+The action exposes the paths it produced as step outputs so you can
+post-process them (e.g. upload to S3, attach to a Slack message, comment
+on a PR):
+
+| Output            | Description                                                                  |
+| ----------------- | ---------------------------------------------------------------------------- |
+| `recordings-path` | Directory containing per-test MP4 recordings (one MP4 per test).             |
+| `results-path`    | The full `.autotester/` directory (videos + JSON + XML reports).             |
+| `results-json`    | Path to `.autotester/e2e.json`.                                              |
+| `results-xml`     | Path to `.autotester/e2e.xml` (JUnit format).                                |
 
 ## Environment Variables
 
-| Variable                   | Description                                                       | Required |
-| -------------------------- | ----------------------------------------------------------------- | -------- |
-| `OPENAI_API_KEY`           | Your OpenAI API key                                               | Yes      |
-| `AUTOTESTER_BASE_URL`      | Override the base URL for E2E tests                               | No       |
-| `AUTOTESTER_AUTH_USERNAME` | Username for HTTP Basic Auth on protected environments            | No       |
-| `AUTOTESTER_AUTH_PASSWORD` | Password for HTTP Basic Auth on protected environments            | No       |
-| `POSTHOG_PERSONAL_API_KEY` | Posthog personal API key for session replay links on failed tests | No       |
+| Variable                   | Description                                                         | Required |
+| -------------------------- | ------------------------------------------------------------------- | -------- |
+| `OPENAI_API_KEY`           | Your OpenAI API key                                                 | Yes      |
+| `AUTOTESTER_BASE_URL`      | Override the base URL for E2E tests                                 | No       |
+| `AUTOTESTER_AUTH_USERNAME` | Username for HTTP Basic Auth on protected environments              | No       |
+| `AUTOTESTER_AUTH_PASSWORD` | Password for HTTP Basic Auth on protected environments              | No       |
+| `POSTHOG_PERSONAL_API_KEY` | Posthog personal API key for session replay links on failed tests   | No       |
 | `AUTOTESTER_MODEL`         | LLM model to use for the browser agent (defaults to `gpt-5.4-mini`) | No       |
 
 ## Prerequisites
@@ -206,7 +230,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Run Autotester E2E Tests
-        uses: cyberwave-os/autotester-action@v0.2.0
+        uses: cyberwave-os/autotester-action@v0.3.0
         with:
           action-type: "e2e"
           verbose: "true"
@@ -224,7 +248,68 @@ login-test: Failed!
 
 The recording URL is also included in the JSON (`e2e.json`) and XML (`e2e.xml`) report outputs, so you can use it in downstream steps (e.g. posting to Slack or adding a PR comment).
 
-### 5. (Optional) Configure step limits and timeouts
+### 5. Video recordings
+
+Every test produces an MP4 video of the browser session, captured locally
+via [browser-use](https://github.com/browser-use/browser-use)'s built-in
+CDP screencast recorder. No third-party service or signup is required —
+the recording happens right inside the GitHub runner.
+
+By default the action uploads the entire `.autotester/` directory
+(per-test videos + the JSON and JUnit XML reports) as a workflow artifact
+named `autotester-results`. You can download it from the run summary
+page in the GitHub UI, or via `gh run download`.
+
+```yaml
+- name: Run Autotester E2E Tests
+  id: autotester
+  uses: cyberwave-os/autotester-action@v0.3.0
+  with:
+    action-type: "e2e"
+    openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+```
+
+If you'd rather upload the videos somewhere else (S3, GCS, Slack, a PR
+comment, …), turn off the built-in upload and use the action's outputs:
+
+```yaml
+- name: Run Autotester E2E Tests
+  id: autotester
+  uses: cyberwave-os/autotester-action@v0.3.0
+  with:
+    action-type: "e2e"
+    openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+    upload-artifacts: "false"
+
+- name: Push videos to S3
+  if: always()
+  run: |
+    aws s3 cp \
+      "${{ steps.autotester.outputs.recordings-path }}" \
+      "s3://my-bucket/runs/${{ github.run_id }}/" \
+      --recursive
+```
+
+The recordings directory layout is:
+
+```
+.autotester/
+├── e2e.json               # full test results, including video_path per test
+├── e2e.xml                # JUnit XML
+└── videos/
+    ├── login-test/
+    │   └── login-test.mp4
+    └── checkout-test/
+        └── checkout-test.mp4
+```
+
+> **Note** — Posthog session replay links (the `posthog-api-key` input)
+> remain supported and complement the local MP4. PostHog is great for
+> watching the user-side experience on a deployed environment; the local
+> MP4 covers everything the agent saw in the runner, which is especially
+> useful for debugging headless-only failures.
+
+### 6. (Optional) Configure step limits and timeouts
 
 By default, Autotester automatically calculates a sensible agent step limit and wall-clock timeout for each test based on its number of steps. This prevents the browser agent from running indefinitely if it gets stuck in a loop.
 
@@ -250,7 +335,7 @@ e2e:
 
 When a test hits either limit, it is marked as failed with a descriptive message (e.g. `"Test timed out after 300s"`). No changes to your workflow file are needed — just update your `autotester.yml`.
 
-### 6. (Optional) Choose the LLM model
+### 7. (Optional) Choose the LLM model
 
 Autotester drives the browser agent with an OpenAI model. By default it uses
 `gpt-5.4-mini`. You can override it in three ways (highest precedence first):
@@ -261,7 +346,7 @@ Autotester drives the browser agent with an OpenAI model. By default it uses
 
 ```yaml
 - name: Run Autotester E2E Tests
-  uses: cyberwave-os/autotester-action@v0.2.0
+  uses: cyberwave-os/autotester-action@v0.3.0
   with:
     action-type: "e2e"
     openai-api-key: ${{ secrets.OPENAI_API_KEY }}

@@ -46,6 +46,32 @@ inputs:
     description: "LLM model to drive the browser agent (e.g. gpt-5.4-mini, gpt-4o). Overrides any `model:` set in autotester.yml. Alternative to AUTOTESTER_MODEL env var."
     required: false
     default: ""
+  upload-artifacts:
+    description: "Upload the .autotester/ directory (videos + JSON/XML reports) as a workflow artifact named `autotester-results`. Set to 'false' to disable and use the `recordings-path` output to upload yourself."
+    required: false
+    default: "true"
+  artifact-name:
+    description: "Name of the workflow artifact to upload when `upload-artifacts` is true."
+    required: false
+    default: "autotester-results"
+  artifact-retention-days:
+    description: "Number of days to retain the uploaded artifact. Defaults to GitHub's repository setting."
+    required: false
+    default: ""
+
+outputs:
+  recordings-path:
+    description: "Filesystem path to the directory containing per-test MP4 recordings (relative to the workflow workspace)."
+    value: ${{ steps.collect-artifacts.outputs.recordings-path }}
+  results-path:
+    description: "Filesystem path to the .autotester/ directory containing all reports (e2e.json, e2e.xml) and recordings."
+    value: ${{ steps.collect-artifacts.outputs.results-path }}
+  results-json:
+    description: "Filesystem path to the e2e.json report."
+    value: ${{ steps.collect-artifacts.outputs.results-json }}
+  results-xml:
+    description: "Filesystem path to the e2e.xml JUnit report."
+    value: ${{ steps.collect-artifacts.outputs.results-xml }}
 
 runs:
   using: "composite"
@@ -89,7 +115,9 @@ runs:
     - name: Install Autotester
       shell: bash
       run: |
-        pip install "autotester>=0.1.3"
+        # autotester>=0.1.4 already pulls in `browser-use[video]`, which
+        # bundles imageio[ffmpeg] for local MP4 recording of every test.
+        pip install "autotester>=0.1.4"
 
     - name: Install browser-use browsers
       shell: bash
@@ -139,6 +167,7 @@ runs:
         emit_if_set AUTOTESTER_MODEL "$INPUT_MODEL"
 
     - name: Run Autotester E2E Tests
+      id: run-tests
       shell: bash
       run: |
         if [ "${{ inputs.action-type }}" != "e2e" ]; then
@@ -156,7 +185,15 @@ runs:
           CONFIG_OPTION="--config ${{ inputs.config-file }}"
         fi
 
+        # We capture autotester's exit status but DON'T fail the step here:
+        # the artifact-collection / upload steps below run even on failure
+        # (`if: always()`), so we always preserve videos and reports for
+        # debugging. The actual workflow status is propagated by the final
+        # "Report autotester status" step.
+        set +e
         autotester e2e $VERBOSE_FLAG $CONFIG_OPTION
+        echo "exit-code=$?" >> "$GITHUB_OUTPUT"
+        set -e
       env:
         # CHROME_PATH is set via $GITHUB_ENV in the "Install Chrome" step and
         # the autotester CLI expects it under the name CHROME_INSTANCE_PATH.
@@ -169,3 +206,57 @@ runs:
         # (step-level env does not propagate into the composite `env`
         # context).
         CHROME_INSTANCE_PATH: ${{ env.CHROME_PATH }}
+
+    # Collect the produced artifacts and expose their paths as step outputs.
+    # Runs on success AND failure so failed runs still surface their videos.
+    - name: Collect Autotester artifacts
+      id: collect-artifacts
+      if: always()
+      shell: bash
+      run: |
+        RESULTS_DIR=".autotester"
+        RECORDINGS_DIR="$RESULTS_DIR/videos"
+        RESULTS_JSON="$RESULTS_DIR/e2e.json"
+        RESULTS_XML="$RESULTS_DIR/e2e.xml"
+
+        echo "results-path=$RESULTS_DIR" >> "$GITHUB_OUTPUT"
+        echo "recordings-path=$RECORDINGS_DIR" >> "$GITHUB_OUTPUT"
+        echo "results-json=$RESULTS_JSON" >> "$GITHUB_OUTPUT"
+        echo "results-xml=$RESULTS_XML" >> "$GITHUB_OUTPUT"
+
+        if [ -d "$RECORDINGS_DIR" ]; then
+          VIDEO_COUNT=$(find "$RECORDINGS_DIR" -type f -name '*.mp4' | wc -l | tr -d ' ')
+          echo "Captured $VIDEO_COUNT MP4 recording(s) in $RECORDINGS_DIR"
+        else
+          echo "No recordings directory found (autotester may have failed before any test ran)."
+        fi
+
+    # Upload the .autotester/ folder as a workflow artifact. Disable with
+    # `with: upload-artifacts: 'false'` if you'd rather upload the
+    # `recordings-path` output yourself (e.g. to S3 or a different artifact
+    # name).
+    - name: Upload Autotester artifacts
+      if: ${{ always() && inputs.upload-artifacts == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: .autotester/
+        if-no-files-found: ignore
+        retention-days: ${{ inputs.artifact-retention-days }}
+
+    # Re-emit autotester's exit status so the calling workflow's job fails
+    # when any E2E test failed. Without this, the action would always be
+    # considered successful because the test step itself swallows the
+    # non-zero exit (we did that on purpose so artifacts upload first).
+    - name: Report autotester status
+      if: always()
+      shell: bash
+      run: |
+        EXIT_CODE="${{ steps.run-tests.outputs.exit-code }}"
+        if [ -z "$EXIT_CODE" ]; then
+          # The run-tests step never produced an output (e.g. it was
+          # skipped or crashed before assigning). Treat that as failure
+          # so we don't silently mark a broken run as green.
+          EXIT_CODE=1
+        fi
+        exit "$EXIT_CODE"
