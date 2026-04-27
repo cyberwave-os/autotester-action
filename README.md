@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Run Autotester E2E Tests
-        uses: cyberwave-os/autotester-action@v0.1.10
+        uses: cyberwave-os/autotester-action@v0.2.0
         with:
           action-type: "e2e"
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
@@ -60,7 +60,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Run Autotester E2E Tests
-        uses: cyberwave-os/autotester-action@v0.1.10
+        uses: cyberwave-os/autotester-action@v0.2.0
         with:
           action-type: "e2e"
           config-file: "autotester.yml"
@@ -71,26 +71,28 @@ jobs:
 
 ## Inputs
 
-| Input             | Description                                                                                  | Required | Default          |
-| ----------------- | -------------------------------------------------------------------------------------------- | -------- | ---------------- |
-| `action-type`     | Type of tests to run (`e2e`)                                                                 | No       | `e2e`            |
-| `config-file`     | Path to the YAML configuration file                                                          | No       | `autotester.yml` |
-| `verbose`         | Enable verbose logging output                                                                | No       | `false`          |
-| `openai-api-key`  | OpenAI API key. Alternative to setting `OPENAI_API_KEY` via `env:`.                          | No       | `""`             |
-| `base-url`        | Base URL to combine with relative test URLs. Alternative to `AUTOTESTER_BASE_URL`.           | No       | `""`             |
-| `auth-username`   | HTTP Basic Auth username. Alternative to `AUTOTESTER_AUTH_USERNAME`.                         | No       | `""`             |
-| `auth-password`   | HTTP Basic Auth password. Alternative to `AUTOTESTER_AUTH_PASSWORD`.                         | No       | `""`             |
+| Input             | Description                                                                                   | Required | Default          |
+| ----------------- | --------------------------------------------------------------------------------------------- | -------- | ---------------- |
+| `action-type`     | Type of tests to run (`e2e`)                                                                  | No       | `e2e`            |
+| `config-file`     | Path to the YAML configuration file                                                           | No       | `autotester.yml` |
+| `verbose`         | Enable verbose logging output                                                                 | No       | `false`          |
+| `openai-api-key`  | OpenAI API key. Alternative to setting `OPENAI_API_KEY` via `env:`.                           | No       | `""`             |
+| `base-url`        | Base URL to combine with relative test URLs. Alternative to `AUTOTESTER_BASE_URL`.            | No       | `""`             |
+| `auth-username`   | HTTP Basic Auth username. Alternative to `AUTOTESTER_AUTH_USERNAME`.                          | No       | `""`             |
+| `auth-password`   | HTTP Basic Auth password. Alternative to `AUTOTESTER_AUTH_PASSWORD`.                          | No       | `""`             |
 | `posthog-api-key` | Posthog personal API key for session replay links. Alternative to `POSTHOG_PERSONAL_API_KEY`. | No       | `""`             |
+| `model`           | LLM model used to drive the browser agent (e.g. `gpt-5.4-mini`). Alternative to `AUTOTESTER_MODEL`. | No       | `""`             |
 
 ## Environment Variables
 
-| Variable                     | Description                                         | Required |
-| ---------------------------- | --------------------------------------------------- | -------- |
-| `OPENAI_API_KEY`             | Your OpenAI API key                                 | Yes      |
-| `AUTOTESTER_BASE_URL`        | Override the base URL for E2E tests                 | No       |
-| `AUTOTESTER_AUTH_USERNAME`   | Username for HTTP Basic Auth on protected environments | No    |
-| `AUTOTESTER_AUTH_PASSWORD`   | Password for HTTP Basic Auth on protected environments | No    |
-| `POSTHOG_PERSONAL_API_KEY`   | Posthog personal API key for session replay links on failed tests | No |
+| Variable                   | Description                                                       | Required |
+| -------------------------- | ----------------------------------------------------------------- | -------- |
+| `OPENAI_API_KEY`           | Your OpenAI API key                                               | Yes      |
+| `AUTOTESTER_BASE_URL`      | Override the base URL for E2E tests                               | No       |
+| `AUTOTESTER_AUTH_USERNAME` | Username for HTTP Basic Auth on protected environments            | No       |
+| `AUTOTESTER_AUTH_PASSWORD` | Password for HTTP Basic Auth on protected environments            | No       |
+| `POSTHOG_PERSONAL_API_KEY` | Posthog personal API key for session replay links on failed tests | No       |
+| `AUTOTESTER_MODEL`         | LLM model to use for the browser agent (defaults to `gpt-5.4-mini`) | No       |
 
 ## Prerequisites
 
@@ -177,7 +179,7 @@ If your website uses [Posthog](https://posthog.com) with [session replay](https:
 e2e:
   posthog:
     project_id: "12345"
-    host: "https://us.posthog.com"  # or https://eu.posthog.com, or your self-hosted URL
+    host: "https://us.posthog.com" # or https://eu.posthog.com, or your self-hosted URL
   login-test:
     url: "https://staging.example.com"
     steps:
@@ -204,7 +206,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Run Autotester E2E Tests
-        uses: cyberwave-os/autotester-action@v0.1.10
+        uses: cyberwave-os/autotester-action@v0.2.0
         with:
           action-type: "e2e"
           verbose: "true"
@@ -235,18 +237,50 @@ You can override these globally or per test in your `autotester.yml`:
 
 ```yaml
 e2e:
-  max_steps: 40       # global default for all tests
-  timeout: 300        # global timeout in seconds
+  max_steps: 40 # global default for all tests
+  timeout: 300 # global timeout in seconds
   login-test:
     url: "https://staging.example.com"
-    max_steps: 25     # override for this test only
-    timeout: 180      # override for this test only
+    max_steps: 25 # override for this test only
+    timeout: 180 # override for this test only
     steps:
       - "Navigate to the login page"
       - "Check that the dashboard is displayed"
 ```
 
 When a test hits either limit, it is marked as failed with a descriptive message (e.g. `"Test timed out after 300s"`). No changes to your workflow file are needed — just update your `autotester.yml`.
+
+### 6. (Optional) Choose the LLM model
+
+Autotester drives the browser agent with an OpenAI model. By default it uses
+`gpt-5.4-mini`. You can override it in three ways (highest precedence first):
+
+1. `AUTOTESTER_MODEL` environment variable
+2. `model:` input on this action (forwarded to `AUTOTESTER_MODEL` for you)
+3. `model:` key in the `e2e:` section of your `autotester.yml`
+
+```yaml
+- name: Run Autotester E2E Tests
+  uses: cyberwave-os/autotester-action@v0.2.0
+  with:
+    action-type: "e2e"
+    openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+    model: "gpt-5.4-mini"
+```
+
+Or set it in `autotester.yml` so the same model is used locally and in CI:
+
+```yaml
+e2e:
+  model: "gpt-5.4-mini"
+  login-test:
+    url: "https://staging.example.com"
+    steps:
+      - "Check the homepage loads"
+```
+
+The model name must be one your OpenAI account is entitled to call; Autotester
+forwards it verbatim to OpenAI via `browser-use`.
 
 ## Supported Languages
 

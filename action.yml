@@ -42,6 +42,10 @@ inputs:
     description: "Posthog personal API key for session replay links on failed tests. Alternative to POSTHOG_PERSONAL_API_KEY env var."
     required: false
     default: ""
+  model:
+    description: "LLM model to drive the browser agent (e.g. gpt-5.4-mini, gpt-4o). Overrides any `model:` set in autotester.yml. Alternative to AUTOTESTER_MODEL env var."
+    required: false
+    default: ""
 
 runs:
   using: "composite"
@@ -85,7 +89,7 @@ runs:
     - name: Install Autotester
       shell: bash
       run: |
-        pip install "autotester>=0.1.2"
+        pip install "autotester>=0.1.3"
 
     - name: Install browser-use browsers
       shell: bash
@@ -114,6 +118,7 @@ runs:
         INPUT_AUTH_USERNAME: ${{ inputs.auth-username }}
         INPUT_AUTH_PASSWORD: ${{ inputs.auth-password }}
         INPUT_POSTHOG_API_KEY: ${{ inputs.posthog-api-key }}
+        INPUT_MODEL: ${{ inputs.model }}
       run: |
         set -u
         # Emit $name=$value to $GITHUB_ENV only when a non-empty value was
@@ -131,6 +136,7 @@ runs:
         emit_if_set AUTOTESTER_AUTH_USERNAME "$INPUT_AUTH_USERNAME"
         emit_if_set AUTOTESTER_AUTH_PASSWORD "$INPUT_AUTH_PASSWORD"
         emit_if_set POSTHOG_PERSONAL_API_KEY "$INPUT_POSTHOG_API_KEY"
+        emit_if_set AUTOTESTER_MODEL "$INPUT_MODEL"
 
     - name: Run Autotester E2E Tests
       shell: bash
